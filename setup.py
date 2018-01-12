@@ -1,5 +1,6 @@
 from setuptools import setup
 
+# Helpful resource: https://stackoverflow.com/questions/1612733/including-non-python-files-with-setup-py
 setup(
   name = 'dynarehelper',
   packages = ['dynarehelper'],
@@ -12,7 +13,5 @@ setup(
   keywords = ['economics','solution','dsge','macroconomics','rbc','new keynesian','business cycles','dynare','dynare++','octave'],
   classifiers = [],
   package_data={'dynarehelper': ['dynare_simul_.mex','dynare_simul.m']},
-  # package_data={'dynarehelper': ['dynare_simul_.mex','dynare_simul.m']},
-  # data_files=[('.',['dynare_simul_.mex','dynare_simul.m'])],
   include_package_data=True,
 )
