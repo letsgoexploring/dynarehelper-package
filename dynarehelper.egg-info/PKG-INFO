@@ -1,0 +1,12 @@
+Metadata-Version: 1.0
+Name: dynarehelper
+Version: 0.0.1
+Summary: A package for using Dynare++ and Octave to solve dynamic stochastic general equilibrium (DSGE) models
+Home-page: https://github.com/letsgoexploring/dynarehelper-package
+Author: Brian C. Jenkins
+Author-email: bcjenkin@uci.edu
+License: UNKNOWN
+Description-Content-Type: UNKNOWN
+Description: UNKNOWN
+Keywords: economics,solution,dsge,macroconomics,rbc,new keynesian,business cycles,dynare,dynare++,octave
+Platform: UNKNOWN
