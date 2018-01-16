@@ -102,7 +102,7 @@ class model:
         create_dynare_file(parameters,shockNames,varNames,equations,steadyStates,covMat,order,filename)
 
 
-    def approximate(self,per=0,dropFirst=0,sim=0,centralize=False,order= None,otherOptions=None):
+    def approximate(self,per=0,dropFirst=0,sim=0,centralize=True,order= None,otherOptions=None):
 
         '''Use Dynare++ to approximate the decision rule for the nonlinear model
 
@@ -111,7 +111,7 @@ class model:
             dropFirst:      (int) Number of initial simulated periods to discard. Default: 0
             sim:            (int) Number of simulation periods. Default: 0
             centralize:     (bool)=False. Whether to subtract the constant term of the decision rule (not 
-                                necessarily steady state for higher order approximations). Default: False
+                                necessarily steady state for higher order approximations). Default: True
             order:          (int) Order of approximation. Overrides self.order. Default: None
             otherOptions:   (list) additional arguments to be passed to Dynare++.  Default: None
 
@@ -461,12 +461,16 @@ def run_dynare(filename,per=None,dropFirst=None,sim=None,centralize=False,order=
     # Import results
     mat = scipy.io.loadmat(filename.split('.')[0]+'.mat')
     
-    varNames = mat['dyn_vars']
+    varNames = []
+    for item in mat['dyn_vars']:
+        varNames.append(item.strip())
+
     stateNames = []
     for item in mat['dyn_state_vars']:
         stateNames.append(item.strip())
 
     shockNames = mat['dyn_shocks']
+
     steadyStates = mat['dyn_ss']
 
     locations = {}
@@ -560,7 +564,7 @@ def transorm_to_logs(vars_to_transform,equations,varNames,shockNames,parameters,
     Args:
         vars_to_transform:  (list) ist of variable names to be converted to log
         equations:          (list) list of equations (strings) in Dynare++ format
-        varNames:           (list) list of all variables in the model
+        variables:           (list) list of all variables in the model
         shockNames:         (list) list of all shocks in the model
         parameters:         (list) list of all parameters in the model
         lead_lag_max:       (int) maximum number of time leads/lags in dynare++ model
@@ -568,21 +572,25 @@ def transorm_to_logs(vars_to_transform,equations,varNames,shockNames,parameters,
     Returns:
         list of modified equations
     '''
-    
-    
-    excluded = []
-    for v in varNames:
-        if v not in vars_to_transform:
-            excluded.append(v)
 
+    variables = varNames.copy()
     funs = ['erf','erfc','log','exp']
 
-    strings = shockNames + funs+ list(parameters.index) + excluded
+    strings = shockNames + funs+ list(parameters.index)
+    
 
+    for item in strings:
+        if item in vars_to_transform:
+            strings.remove(item)
+            variables.append(item)
 
     for i,eqn in enumerate(equations):
         for v in vars_to_transform:
             eqn = eqn.replace(v,'exp('+v+')')
+
+            for v2 in variables:
+                if v in v2 and v != v2:
+                    eqn = eqn.replace(v2.replace(v,'exp('+v+')'),v2)
             for string in strings:
                 eqn = eqn.replace(string.replace(v,'exp('+v+')'),string)
             for k in np.arange(-lead_lag_max,lead_lag_max+1,1):
