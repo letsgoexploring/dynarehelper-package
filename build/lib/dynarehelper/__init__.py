@@ -552,3 +552,41 @@ def cleanup(filename=None,allFiles=False):
                 if item.endswith('.mod') or item.endswith('.mat') or item.endswith('simulation.m'):
                     remove(join(dir_name,item))
 
+
+def transorm_to_logs(vars_to_transform,equations,varNames,shockNames,parameters,lead_lag_max=30):
+
+    ''' Function for converting a model in levels into a model in logs.
+
+    Args:
+        vars_to_transform:  (list) ist of variable names to be converted to log
+        equations:          (list) list of equations (strings) in Dynare++ format
+        varNames:           (list) list of all variables in the model
+        shockNames:         (list) list of all shocks in the model
+        parameters:         (list)list of all parameters in the model
+        lead_lag_max:       (int) maximum number of time leads/lags in dynare++ model
+
+    Returns:
+        list of modified equations
+    '''
+    
+    
+    excluded = []
+    for v in varNames:
+        if v not in vars_to_transform:
+            excluded.append(v)
+
+    funs = ['erf','erfc','log','exp']
+
+    strings = shockNames + funs+ list(parameters.index) + excluded
+
+
+    for i,eqn in enumerate(equations):
+        for v in vars_to_transform:
+            eqn = eqn.replace(v,'exp('+v+')')
+            for string in strings:
+                eqn = eqn.replace(string.replace(v,'exp('+v+')'),string)
+            for k in np.arange(-lead_lag_max,lead_lag_max+1,1):
+                eqn = eqn.replace('exp('+v+')('+str(k)+')','exp('+v+'('+str(k)+'))')
+
+        equations[i] = eqn
+    return equations
