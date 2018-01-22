@@ -361,7 +361,7 @@ def create_dynare_file(parameters,shockNames,varNames,equations,steadyStates,cov
     for name in parameters.index:
         text += name+','
 
-    text = text[:-1]+';\n'
+    text = text[:-1]+';\n\n'
     
     for name in parameters.index:
         text+=name+' = '+ str(parameters[name])+';\n'
@@ -469,7 +469,9 @@ def run_dynare(filename,per=None,dropFirst=None,sim=None,centralize=False,order=
     for item in mat['dyn_state_vars']:
         stateNames.append(item.strip())
 
-    shockNames = mat['dyn_shocks']
+    shockNames = []
+    for item in mat['dyn_shocks']:
+        shockNames.append(item.strip())
 
     steadyStates = mat['dyn_ss']
 
