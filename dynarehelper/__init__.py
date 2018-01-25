@@ -5,6 +5,7 @@ import numpy as np
 import scipy.io
 from os import remove,getcwd,listdir
 from os.path import join,dirname,isfile
+import time
 
 
 def octave_file():
@@ -102,7 +103,7 @@ class model:
         create_dynare_file(parameters,shockNames,varNames,equations,steadyStates,covMat,order,filename)
 
 
-    def approximate(self,per=0,dropFirst=0,sim=0,centralize=True,order= None,otherOptions=None):
+    def approximate(self,per=0,dropFirst=0,sim=0,centralize=True,order= None,otherOptions=None,useExisting=False,clock=True):
 
         '''Use Dynare++ to approximate the decision rule for the nonlinear model
 
@@ -113,7 +114,10 @@ class model:
             centralize:     (bool)=False. Whether to subtract the constant term of the decision rule (not 
                                 necessarily steady state for higher order approximations). Default: True
             order:          (int) Order of approximation. Overrides self.order. Default: None
-            otherOptions:   (list) additional arguments to be passed to Dynare++.  Default: None
+            otherOptions:   (list) Additional arguments to be passed to Dynare++.  Default: None
+            useExisting:    (bool) Whether to reompute the decision rule or simply use existing .mat file 
+                                with previously-computed rule. Default: False
+            clock:          (bool) Whether to print the time to compute decision rule. Default: True
 
         Returns:
             None
@@ -129,7 +133,9 @@ class model:
         '''
 
         # Approximate the decision rule
-        results = run_dynare(self.filename,per=per,dropFirst=None,sim=sim,centralize=centralize,order=order,otherOptions=otherOptions)
+
+        start= time.time()
+        results = run_dynare(self.filename,per=per,dropFirst=None,sim=sim,centralize=centralize,order=order,otherOptions=otherOptions,useExisting=useExisting)
 
         # Assign attribute values
         self.ss = results['ss']
@@ -138,6 +144,10 @@ class model:
         self.stateNames = results['states']
         self.shockNames = results['shockNames']
         self.locations = results['locations']
+        end = time.time()
+        
+        if clock:
+            timer(start,end)
 
     def impulse(self,T = 51,t0=1,dropFirst = 300,shocks = None,diff = True,percent = False):
 
@@ -400,7 +410,7 @@ def create_dynare_file(parameters,shockNames,varNames,equations,steadyStates,cov
         test.write(text)
 
 
-def run_dynare(filename,per=None,dropFirst=None,sim=None,centralize=False,order= None,otherOptions=None):
+def run_dynare(filename,per=None,dropFirst=None,sim=None,centralize=False,order= None,otherOptions=None,useExisting=False):
 
     '''Use Dynare++ to approximate the decision rule for the nonlinear model
 
@@ -412,6 +422,8 @@ def run_dynare(filename,per=None,dropFirst=None,sim=None,centralize=False,order=
                             necessarily steady state for higher order approximations). Default: False
         order:          (int) Order of approximation. Overrides self.order. Default: None
         otherOptions:   (list) additional arguments to be passed to Dynare++.  Default: None
+        useExisting:    (bool) Whether to reompute the decision rule or simply use existing .mat file 
+                                with previously-computed rule. Default: False
 
     Returns:
         Dictionary woith the following elements:
@@ -425,6 +437,8 @@ def run_dynare(filename,per=None,dropFirst=None,sim=None,centralize=False,order=
 
     '''
     
+    dir_name = getcwd()
+
     # Construct the shell command
     options = ['dynare++']
 
@@ -454,9 +468,11 @@ def run_dynare(filename,per=None,dropFirst=None,sim=None,centralize=False,order=
             options.append(item)
 
     options.append(filename)
-    
-    # Run Dynare++
-    call(options)
+
+    if not useExisting or not isfile(join(dir_name,filename.split('.')[0]+'.mat')):
+        
+        # Run Dynare++
+        call(options)
 
     # Import results
     mat = scipy.io.loadmat(filename.split('.')[0]+'.mat')
@@ -561,7 +577,7 @@ def cleanup(filename=None,allFiles=False):
 
 def transorm_to_logs(vars_to_transform,equations,varNames,shockNames,parameters,lead_lag_max=30):
 
-    ''' Function for converting a model in levels into a model in logs.
+    '''Function for converting a model in levels into a model in logs.
 
     Args:
         vars_to_transform:  (list) ist of variable names to be converted to log
@@ -600,3 +616,19 @@ def transorm_to_logs(vars_to_transform,equations,varNames,shockNames,parameters,
 
         equations[i] = eqn
     return equations
+
+def timer(start,end):
+    '''Function to compute runtime Prints time elapsed between start and end in hh:mm:ss format.
+
+    Args:
+        start:  (float) computed using time.time()
+        end:    (float) computed using time.time()
+
+    Returns:
+        None
+    '''
+
+
+    hours, rem = divmod(end-start, 3600)
+    minutes, seconds = divmod(rem, 60)
+    print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds))
